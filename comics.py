@@ -16,6 +16,9 @@ OBJECT = 'sflomenb-comics'
 YEARS = os.environ.get('years')
 if YEARS:
     YEARS = YEARS.split(',')
+NUMBERS = os.environ.get('numbers')
+if NUMBERS:
+    NUMBERS = NUMBERS.split(',')
 
 s3_client = boto3.client('s3')
 sns_client = boto3.client('sns')
@@ -42,11 +45,14 @@ def get_comics_from_html(website_html):
 
 def send_sms(text):
     logging.debug('text: %s', text)
-    response = sns_client.publish(
-        PhoneNumber='+18564959075',
-        Message='AWS Comics Lambda: changes found: ' + text
-    )
-    return response
+    responses = []
+    for number in NUMBERS:
+        response = sns_client.publish(
+            PhoneNumber=number,
+            Message='AWS Comics Lambda: changes found: ' + text
+        )
+        responses.append(response)
+    return responses
 
 def upload_to_s3(content):
     logging.debug('content: %s', content)
