@@ -49,7 +49,7 @@ def send_sms(text):
     for number in NUMBERS:
         response = sns_client.publish(
             PhoneNumber=number,
-            Message='AWS Comics Lambda: changes found: ' + text
+            Message='AWS Comics Lambda: changes found: \n\n' + text
         )
         responses.append(response)
     return responses
