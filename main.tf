@@ -122,7 +122,6 @@ resource "aws_lambda_function" "comics_lambda" {
 
   environment {
     variables = {
-      years   = "2019,2020"
       numbers = "+18564959075,+12158880955"
     }
   }

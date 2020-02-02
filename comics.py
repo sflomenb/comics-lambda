@@ -4,27 +4,24 @@ import boto3
 import os
 import requests
 import difflib
+import datetime
+import sys
 from bs4 import BeautifulSoup
 import logging
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
 
 #BASE_URL = 'https://www.readdc.com/search/series?search={}-&seriesSearchDetailList_pg={}'
 BASE_URL = 'https://www.readdc.com/search/series'
 BUCKET = 'sflomenb-comics'
 OBJECT = 'sflomenb-comics'
-YEARS = os.environ.get('years')
-if YEARS:
-    YEARS = YEARS.split(',')
+YEARS = [datetime.datetime.now().strftime('%Y')]
+if 'years' in os.environ:
+    YEARS = os.environ.get('years').split(',')
 NUMBERS = os.environ.get('numbers')
 if NUMBERS:
     NUMBERS = NUMBERS.split(',')
 
 s3_client = boto3.client('s3')
 sns_client = boto3.client('sns')
-
-def test():
-    print('wow')
 
 def website_exists_s3():
     objs = s3_client.list_objects(Bucket=BUCKET, Prefix=OBJECT)
@@ -59,8 +56,20 @@ def upload_to_s3(content):
     s3_client.put_object(Bucket=BUCKET, Key=OBJECT, Body=content)
 
 def get_website_changes():
+    root = logging.getLogger()
     if 'verbose' in os.environ:
-        logger.setLevel(logging.DEBUG)
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
+    root.setLevel(log_level)
+
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(log_level)
+
+    formatter = logging.Formatter('%(levelname)s - %(funcName)s - %(message)s')
+    handler.setFormatter(formatter)
+    root.handlers = [handler]
+
     comics = set()
     comics_list_s3 = set()
     s3_comics = set()
@@ -68,7 +77,7 @@ def get_website_changes():
         website_content_from_s3 = get_website_from_s3()
         s3_comics.update(website_content_from_s3.split('\n'))
     logging.debug('s3_comics: %s', s3_comics)
-    for year in [2019, 2020]:
+    for year in YEARS:
         last_comics = set()
         index = 0
         while True:
@@ -76,6 +85,7 @@ def get_website_changes():
             current_comics = get_comics_from_html(current_content)
             logging.debug('current_comics: %s', current_comics)
             if current_comics == last_comics:
+                logging.debug(f'breaking loop for {year} with index {index}')
                 break
             last_comics = current_comics
             comics.update(current_comics)
