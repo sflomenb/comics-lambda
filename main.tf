@@ -1,18 +1,19 @@
-variable "lambda_code_name" {
-  description = "name of file containing code for lambda, i.e., lambda.py)"
-}
-
 variable "lambda_function_name" {
   description = "name of the lambda function in AWS"
-}
-
-variable "zip_name" {
-  description = "name of the zip file containing lambda code, i.e., function.zip"
 }
 
 provider "aws" {
   profile = "default"
   region  = "us-east-1"
+}
+
+data "aws_ecr_repository" "repo" {
+  name = "comics-repo"
+}
+
+data "aws_ecr_image" "image" {
+  repository_name = data.aws_ecr_repository.repo.name
+  image_tag       = "latest"
 }
 
 resource "aws_s3_bucket" "comics_bucket" {
@@ -30,6 +31,7 @@ resource "aws_cloudwatch_event_rule" "comics_lambda_rule" {
   tags = {
     Name = "ComicsLambdaRule"
   }
+  is_enabled = false
 }
 
 resource "aws_cloudwatch_event_target" "comics_lambda_cloudwatch_target" {
@@ -110,15 +112,12 @@ resource "aws_iam_role_policy_attachment" "comics_lambda_cloud_watch_policy_atta
 
 
 resource "aws_lambda_function" "comics_lambda" {
-  filename      = var.zip_name
   function_name = var.lambda_function_name
   role          = aws_iam_role.comics_iam_for_lambda.arn
-  handler       = "comics.lambda_handler"
-  timeout       = 10
+  timeout       = 900
 
-  source_code_hash = filebase64sha256("${var.zip_name}")
-
-  runtime = "python3.8"
+  package_type = "Image"
+  image_uri    = "${data.aws_ecr_repository.repo.repository_url}@${data.aws_ecr_image.image.id}"
 
   environment {
     variables = {
