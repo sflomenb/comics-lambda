@@ -24,6 +24,8 @@ COPY requirements.txt /var/task/
 
 RUN pip3 install -r requirements.txt
 
+ENV PYPPETEER_HOME=/tmp
+
 COPY comics.py /var/task
 
 CMD [ "comics.lambda_handler" ]
