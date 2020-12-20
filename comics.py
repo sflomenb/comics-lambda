@@ -23,6 +23,8 @@ if NUMBERS:
 PUBLISHERS = os.environ.get("publishers", "DC").split(",")
 REGION = os.environ.get("region", "us-east-1")
 
+SESSION = None
+
 s3_client = boto3.client("s3", region_name=REGION)
 sns_client = boto3.client("sns", region_name=REGION)
 
@@ -45,9 +47,13 @@ def get_website_from_s3():
 def get_rendered_html(
     url: str, params: Optional[Dict[str, int]] = None
 ) -> BeautifulSoup:
-    session = HTMLSession()
+    logging.debug("url: %s", str(url))
+    logging.debug("params: %s", str(params))
+    global SESSION
+    if not SESSION:
+        SESSION = HTMLSession()
 
-    resp = session.get(url, params=params)
+    resp = SESSION.get(url, params=params)
 
     resp.html.render()
 
