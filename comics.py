@@ -21,9 +21,10 @@ NUMBERS = os.environ.get("numbers")
 if NUMBERS:
     NUMBERS = NUMBERS.split(",")
 PUBLISHERS = os.environ.get("publishers", "DC").split(",")
+REGION = os.environ.get("region", "us-east-1")
 
-s3_client = boto3.client("s3")
-sns_client = boto3.client("sns")
+s3_client = boto3.client("s3", region_name=REGION)
+sns_client = boto3.client("sns", region_name=REGION)
 
 
 def website_exists_s3():
