@@ -33,8 +33,8 @@ resource "aws_cloudwatch_event_rule" "comics_lambda_rule" {
 }
 
 resource "aws_cloudwatch_event_target" "comics_lambda_cloudwatch_target" {
-  rule      = aws_cloudwatch_event_rule.comics_lambda_rule.name
-  arn       = aws_lambda_function.comics_lambda.arn
+  rule = aws_cloudwatch_event_rule.comics_lambda_rule.name
+  arn  = aws_lambda_function.comics_lambda.arn
 }
 
 resource "aws_iam_role" "comics_iam_for_lambda" {
@@ -63,8 +63,8 @@ EOF
 }
 
 resource "aws_iam_policy" "comics_lambda_iam_policy" {
-  name        = "comics_iam_policy"
-  path        = "/"
+  name = "comics_iam_policy"
+  path = "/"
 
   policy = <<EOF
 {
@@ -116,7 +116,7 @@ resource "aws_lambda_function" "comics_lambda" {
   handler       = "comics.lambda_handler"
   timeout       = 10
 
-  source_code_hash = "${filebase64sha256("${var.zip_name}")}"
+  source_code_hash = filebase64sha256("${var.zip_name}")
 
   runtime = "python3.7"
 
@@ -135,6 +135,6 @@ resource "aws_lambda_permission" "comics_cloudwatch_lambda_execution" {
   function_name = var.lambda_function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.comics_lambda_rule.arn
-  depends_on = [aws_lambda_function.comics_lambda]
+  depends_on    = [aws_lambda_function.comics_lambda]
 }
 
