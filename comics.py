@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-
 import datetime
+import json
 import logging
 import os
 import sys
+import traceback
 from typing import Dict, List, Optional, Set, Tuple
 
 import boto3
@@ -27,6 +28,9 @@ SESSION = None
 
 s3_client = boto3.client("s3", region_name=REGION)
 sns_client = boto3.client("sns", region_name=REGION)
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def website_exists_s3():
@@ -104,48 +108,51 @@ def upload_to_s3(content):
 
 
 def get_website_changes():
-    root = logging.getLogger()
     if "verbose" in os.environ:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
-    root.setLevel(log_level)
+        logger.setLevel(logging.DEBUG)
 
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(log_level)
-
-    formatter = logging.Formatter("%(levelname)s - %(funcName)s - %(message)s")
-    handler.setFormatter(formatter)
-    root.handlers = [handler]
-
-    comics = set()
-    s3_comics = set()
-    if website_exists_s3():
-        website_content_from_s3 = get_website_from_s3()
-        s3_comics.update(website_content_from_s3.split("\n"))
-    logging.debug("s3_comics: %s", s3_comics)
-    for year in YEARS:
-        index = 1
-        previous_comic = ""
-        current_comic = "yes"
-        while previous_comic != current_comic:
-            previous_comic = current_comic
-            current_content = get_rendered_html(
-                BASE_URL,
-                {"search": str(year) + "-", "seriesSearchDetailList_pg": index},
-            )
-            current_comics, current_comic = get_comics_from_html(
-                current_content, PUBLISHERS, previous_comic
-            )
-            logging.info("current_comics: %s", current_comics)
-            comics.update(current_comics)
-            index += 1
-    difference = comics - s3_comics
-    logging.debug("difference: %s", str(difference))
-    if difference:
-        logging.debug("Found changes, uploading to S3")
-        send_sms("\n".join(difference))
-        upload_to_s3("\n".join(comics))
+    try:
+        comics = set()
+        s3_comics = set()
+        if website_exists_s3():
+            website_content_from_s3 = get_website_from_s3()
+            s3_comics.update(website_content_from_s3.split("\n"))
+        logging.debug("s3_comics: %s", s3_comics)
+        for year in YEARS:
+            index = 1
+            previous_comic = ""
+            current_comic = "yes"
+            while previous_comic != current_comic:
+                previous_comic = current_comic
+                current_content = get_rendered_html(
+                    BASE_URL,
+                    {"search": str(year) + "-", "seriesSearchDetailList_pg": index},
+                )
+                current_comics, current_comic = get_comics_from_html(
+                    current_content, PUBLISHERS, previous_comic
+                )
+                logging.info("current_comics: %s", current_comics)
+                comics.update(current_comics)
+                index += 1
+        difference = comics - s3_comics
+        logging.debug("difference: %s", str(difference))
+        if difference:
+            logging.debug("Found changes, uploading to S3")
+            send_sms("\n".join(difference))
+            upload_to_s3("\n".join(comics))
+    except Exception:
+        exception_type, exception_value, exception_traceback = sys.exc_info()
+        traceback_string = traceback.format_exception(
+            exception_type, exception_value, exception_traceback
+        )
+        err_msg = json.dumps(
+            {
+                "errorType": exception_type.__name__,
+                "errorMessage": str(exception_value),
+                "stackTrace": traceback_string,
+            }
+        )
+        logger.error(err_msg)
 
 
 def lambda_handler(event, context):
