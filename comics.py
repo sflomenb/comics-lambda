@@ -4,7 +4,7 @@ import datetime
 import logging
 import os
 import sys
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple
 
 import boto3
 from bs4 import BeautifulSoup
@@ -68,17 +68,23 @@ def from_publisher(tag: Tag, publishers: List[str]) -> bool:
     return soup.find_all(class_="publisher")[0].h3.text.strip() in publishers
 
 
-def get_comics_from_html(website_html: str, publishers: List[str]) -> Set[str]:
+def get_comics_from_html(
+    website_html: str, publishers: List[str], previous_comic: str
+) -> Tuple[Set[str], str]:
     soup = BeautifulSoup(website_html, "html.parser")
-    names = set(
-        [
-            tag.contents[0]
-            for tag in soup.find_all(class_="content-title")
-            if from_publisher(tag, publishers)
-        ]
-    )
+    tags = soup.find_all(class_="content-item")
+    names = set()
+    first_comic = tags[0].figure.h5.contents[0]
+    if first_comic != previous_comic:
+        names.update(
+            [
+                tag.figure.h5.contents[0]
+                for tag in tags
+                if from_publisher(tag, publishers)
+            ]
+        )
     logging.debug("names: %s", str(names))
-    return names
+    return names, first_comic
 
 
 def send_sms(text):
@@ -119,27 +125,25 @@ def get_website_changes():
         s3_comics.update(website_content_from_s3.split("\n"))
     logging.debug("s3_comics: %s", s3_comics)
     for year in YEARS:
-        last_comics = set()
-        index = 0
-        while True:
+        index = 1
+        previous_comic = ""
+        current_comic = "yes"
+        while previous_comic != current_comic:
+            previous_comic = current_comic
             current_content = get_rendered_html(
                 BASE_URL,
                 {"search": str(year) + "-", "seriesSearchDetailList_pg": index},
             )
-            current_comics = get_comics_from_html(current_content, PUBLISHERS)
-            logging.debug("current_comics: %s", current_comics)
-            if current_comics == last_comics:
-                logging.debug(f"breaking loop for {year} with index {index}")
-                break
-            last_comics = current_comics
+            current_comics, current_comic = get_comics_from_html(
+                current_content, PUBLISHERS, previous_comic
+            )
+            logging.info("current_comics: %s", current_comics)
             comics.update(current_comics)
-            logging.debug("last_comics: %s", last_comics)
             index += 1
-    if comics != s3_comics:
-        logging.debug("comics: %s", comics)
-        logging.debug("s3_comics: %s", s3_comics)
+    difference = comics - s3_comics
+    logging.debug("difference: %s", str(difference))
+    if difference:
         logging.debug("Found changes, uploading to S3")
-        difference = comics - s3_comics
         send_sms("\n".join(difference))
         upload_to_s3("\n".join(comics))
 

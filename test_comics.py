@@ -44,7 +44,7 @@ class ComicsTest(unittest.TestCase):
 
         with open("mock_comixology.html", "r") as f:
             html = f.read()
-        comics = get_comics_from_html(html, ["DC", "IDW"])
+        comics, first_comic = get_comics_from_html(html, ["DC", "IDW"], "")
 
         self.assertTrue("Dark Nights: Death Metal (2020-)" in comics)
         self.assertTrue("Batman (2016-)" in comics)
@@ -53,6 +53,8 @@ class ComicsTest(unittest.TestCase):
         self.assertTrue("Star Wars: Darth Vader (2020-)" in comics)
         self.assertTrue("Immortal Hulk (2018-)" in comics)
         self.assertTrue("Superman (2018-)" in comics)
+
+        self.assertEqual(first_comic, "Dark Nights: Death Metal (2020-)")
 
     @mock.patch("comics.get_rendered_html")
     def test_is_from_publisher(self, mock_content):
