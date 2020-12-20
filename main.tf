@@ -118,11 +118,11 @@ resource "aws_lambda_function" "comics_lambda" {
 
   source_code_hash = filebase64sha256("${var.zip_name}")
 
-  runtime = "python3.7"
+  runtime = "python3.8"
 
   environment {
     variables = {
-      numbers = "+18564959075,+12158880955"
+      numbers = "+18564959075,+12158880955",
     }
   }
 

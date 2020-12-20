@@ -2,6 +2,7 @@ import unittest
 
 import boto3
 import mock
+from bs4 import BeautifulSoup
 from moto import mock_s3, mock_sns
 
 
@@ -25,13 +26,6 @@ class ComicsTest(unittest.TestCase):
         content = get_website_from_s3()
         self.assertEqual("hello", content)
 
-    @mock.patch("comics.requests")
-    def test_get_current_content(self, mock_requests):
-        from comics import get_current_website_content
-
-        content = get_current_website_content("https://google.com", {})
-        mock_requests.get.assert_called_with("https://google.com", {})
-
     @unittest.skip("boto/moto is not working here")
     @mock_sns
     def test_send_sms(self):
@@ -42,20 +36,40 @@ class ComicsTest(unittest.TestCase):
         self.assertTrue("MessageId" in response)
         self.assertTrue(response["MessageId"] is not None)
 
-    def test_get_comics_from_html(self):
+    @mock.patch("comics.from_publisher")
+    def test_get_comics_from_html(self, mock_from_publisher):
         from comics import get_comics_from_html
 
-        with open("mock_html.html", "r") as f:
-            html = f.read()
-        comics = get_comics_from_html(html)
+        mock_from_publisher.return_value = True
 
-        self.assertTrue("Doomsday Clock (2017-)" in comics)
+        with open("mock_comixology.html", "r") as f:
+            html = f.read()
+        comics = get_comics_from_html(html, ["DC", "IDW"])
+
+        self.assertTrue("Dark Nights: Death Metal (2020-)" in comics)
         self.assertTrue("Batman (2016-)" in comics)
-        self.assertTrue("Justice League (2018-)" in comics)
-        self.assertTrue("Batman/Superman (2019-)" in comics)
-        self.assertTrue("Legion of Super-Heroes (2019-)" in comics)
-        self.assertTrue("Justice League: Hell Arisen (2019-)" in comics)
-        self.assertTrue("Flash Forward (2019-)" in comics)
+        self.assertTrue("X-Force (2019-)" in comics)
+        self.assertTrue("New Mutants (2019-)" in comics)
+        self.assertTrue("Star Wars: Darth Vader (2020-)" in comics)
+        self.assertTrue("Immortal Hulk (2018-)" in comics)
+        self.assertTrue("Superman (2018-)" in comics)
+
+    @mock.patch("comics.get_rendered_html")
+    def test_is_from_publisher(self, mock_content):
+        from comics import from_publisher
+
+        with open("mock_comixology.html", "r") as f:
+            html = f.read()
+
+        with open("mock_series.html", "r") as f:
+            series_html = f.read()
+
+        mock_content.return_value = series_html
+
+        soup = BeautifulSoup(html, "html.parser")
+        tag = soup.find_all(class_="content-item")[0]
+
+        self.assertTrue(from_publisher(tag, ["DC", "IDW"]))
 
     @mock_s3
     def test_upload_to_s3(self):

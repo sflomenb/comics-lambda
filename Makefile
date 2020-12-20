@@ -1,6 +1,6 @@
 PWD := $(PWD)
 
-PACKAGES_DIR = venv/lib/python3.7/site-packages
+PACKAGES_DIR = venv/lib/python3.8/site-packages
 PACKAGES := $(shell find $(PACKAGES_DIR) -type f | sed 's: :\\ :')
 TEST_DEPENDENCIES = moto mock
 
@@ -14,4 +14,4 @@ venv: $(PACKAGES) $(PACKAGES)
 
 .PHONY: clean
 clean:
-	rm function.zip
+	rm -f function.zip

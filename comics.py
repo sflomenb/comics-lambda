@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 
 import datetime
-import difflib
 import logging
 import os
 import sys
+from typing import Dict, List, Optional, Set
 
 import boto3
-import requests
 from bs4 import BeautifulSoup
+from bs4.element import Tag
+from requests_html import HTMLSession
 
-# BASE_URL = 'https://www.readdc.com/search/series?search={}-&seriesSearchDetailList_pg={}'
-BASE_URL = "https://www.readdc.com/search/series"
+BASE_URL = "https://www.comixology.com/search/series"
 BUCKET = "sflomenb-comics"
 OBJECT = "sflomenb-comics"
 YEARS = [datetime.datetime.now().strftime("%Y")]
@@ -20,6 +20,7 @@ if "years" in os.environ:
 NUMBERS = os.environ.get("numbers")
 if NUMBERS:
     NUMBERS = NUMBERS.split(",")
+PUBLISHERS = os.environ.get("publishers", "DC").split(",")
 
 s3_client = boto3.client("s3")
 sns_client = boto3.client("sns")
@@ -40,15 +41,37 @@ def get_website_from_s3():
     )
 
 
-def get_current_website_content(url, params):
-    req = requests.get(url, params)
-    req.raise_for_status()
-    return req.text
+def get_rendered_html(
+    url: str, params: Optional[Dict[str, int]] = None
+) -> BeautifulSoup:
+    session = HTMLSession()
+
+    resp = session.get(url, params=params)
+
+    resp.html.render()
+
+    return resp.html.html
 
 
-def get_comics_from_html(website_html):
+def from_publisher(tag: Tag, publishers: List[str]) -> bool:
+    url = tag.a["href"]
+
+    soup = BeautifulSoup(get_rendered_html(url), "html.parser")
+
+    return soup.find_all(class_="publisher")[0].h3.text.strip() in publishers
+
+
+def get_comics_from_html(website_html: str, publishers: List[str]) -> Set[str]:
     soup = BeautifulSoup(website_html, "html.parser")
-    return set([tag.contents[0] for tag in soup.find_all("h5")])
+    names = set(
+        [
+            tag.contents[0]
+            for tag in soup.find_all(class_="content-title")
+            if from_publisher(tag, publishers)
+        ]
+    )
+    logging.debug("names: %s", str(names))
+    return names
 
 
 def send_sms(text):
@@ -56,7 +79,7 @@ def send_sms(text):
     responses = []
     for number in NUMBERS:
         response = sns_client.publish(
-            PhoneNumber=number, Message="AWS Comics Lambda: changes found: \n\n" + text
+            PhoneNumber=number, Message=f"AWS Comics Lambda: changes found: \n\n{text}"
         )
         responses.append(response)
     return responses
@@ -83,7 +106,6 @@ def get_website_changes():
     root.handlers = [handler]
 
     comics = set()
-    comics_list_s3 = set()
     s3_comics = set()
     if website_exists_s3():
         website_content_from_s3 = get_website_from_s3()
@@ -93,11 +115,11 @@ def get_website_changes():
         last_comics = set()
         index = 0
         while True:
-            current_content = get_current_website_content(
+            current_content = get_rendered_html(
                 BASE_URL,
                 {"search": str(year) + "-", "seriesSearchDetailList_pg": index},
             )
-            current_comics = get_comics_from_html(current_content)
+            current_comics = get_comics_from_html(current_content, PUBLISHERS)
             logging.debug("current_comics: %s", current_comics)
             if current_comics == last_comics:
                 logging.debug(f"breaking loop for {year} with index {index}")
