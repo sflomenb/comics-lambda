@@ -35,7 +35,7 @@ logger.setLevel(logging.INFO)
 
 def website_exists_s3():
     objs = s3_client.list_objects(Bucket=BUCKET, Prefix=OBJECT)
-    logging.info("objs: %s", objs)
+    logger.info("objs: %s", objs)
     return len(objs.get("Contents", [])) > 0
 
 
@@ -51,8 +51,8 @@ def get_website_from_s3():
 def get_rendered_html(
     url: str, params: Optional[Dict[str, int]] = None
 ) -> BeautifulSoup:
-    logging.debug("url: %s", str(url))
-    logging.debug("params: %s", str(params))
+    logger.debug("url: %s", str(url))
+    logger.debug("params: %s", str(params))
     global SESSION
     if not SESSION:
         SESSION = HTMLSession()
@@ -87,12 +87,12 @@ def get_comics_from_html(
                 if from_publisher(tag, publishers)
             ]
         )
-    logging.debug("names: %s", str(names))
+    logger.debug("names: %s", str(names))
     return names, first_comic
 
 
 def send_sms(text):
-    logging.debug("text: %s", text)
+    logger.debug("text: %s", text)
     responses = []
     for number in NUMBERS:
         response = sns_client.publish(
@@ -103,7 +103,7 @@ def send_sms(text):
 
 
 def upload_to_s3(content):
-    logging.debug("content: %s", content)
+    logger.debug("content: %s", content)
     s3_client.put_object(Bucket=BUCKET, Key=OBJECT, Body=content)
 
 
@@ -117,7 +117,7 @@ def get_website_changes():
         if website_exists_s3():
             website_content_from_s3 = get_website_from_s3()
             s3_comics.update(website_content_from_s3.split("\n"))
-        logging.debug("s3_comics: %s", s3_comics)
+        logger.debug("s3_comics: %s", s3_comics)
         for year in YEARS:
             index = 1
             previous_comic = ""
@@ -131,13 +131,13 @@ def get_website_changes():
                 current_comics, current_comic = get_comics_from_html(
                     current_content, PUBLISHERS, previous_comic
                 )
-                logging.info("current_comics: %s", current_comics)
+                logger.info("current_comics: %s", current_comics)
                 comics.update(current_comics)
                 index += 1
         difference = comics - s3_comics
-        logging.debug("difference: %s", str(difference))
+        logger.debug("difference: %s", str(difference))
         if difference:
-            logging.debug("Found changes, uploading to S3")
+            logger.debug("Found changes, uploading to S3")
             send_sms("\n".join(difference))
             upload_to_s3("\n".join(comics))
     except Exception:
