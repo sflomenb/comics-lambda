@@ -2,6 +2,12 @@ variable "lambda_function_name" {
   description = "name of the lambda function in AWS"
 }
 
+variable "image_tag" {
+  description = "tag for the image"
+  type        = string
+  default     = "latest"
+}
+
 provider "aws" {
   profile = "default"
   region  = "us-east-1"
@@ -13,7 +19,7 @@ data "aws_ecr_repository" "repo" {
 
 data "aws_ecr_image" "image" {
   repository_name = data.aws_ecr_repository.repo.name
-  image_tag       = "latest"
+  image_tag       = var.image_tag
 }
 
 resource "aws_s3_bucket" "comics_bucket" {
