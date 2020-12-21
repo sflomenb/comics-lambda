@@ -66,6 +66,7 @@ def get_rendered_html(
 
 def from_publisher(tag: Tag, publishers: List[str]) -> bool:
     url = tag.a["href"]
+    logging.info("url: %s", str(url))
 
     soup = BeautifulSoup(get_rendered_html(url), "html.parser")
 
@@ -87,7 +88,7 @@ def get_comics_from_html(
                 if from_publisher(tag, publishers)
             ]
         )
-    logger.debug("names: %s", str(names))
+    logger.info("names: %s", str(names))
     return names, first_comic
 
 
@@ -108,8 +109,14 @@ def upload_to_s3(content):
 
 
 def get_website_changes():
+    handler = logging.StreamHandler(sys.stdout)
     if "verbose" in os.environ:
         logger.setLevel(logging.DEBUG)
+        handler.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter("%(levelname)s - %(funcName)s - %(message)s")
+    handler.setFormatter(formatter)
+    logger.handlers = [handler]
 
     try:
         comics = set()
@@ -135,7 +142,7 @@ def get_website_changes():
                 comics.update(current_comics)
                 index += 1
         difference = comics - s3_comics
-        logger.debug("difference: %s", str(difference))
+        logger.info("difference: %s", str(difference))
         if difference:
             logger.debug("Found changes, uploading to S3")
             send_sms("\n".join(difference))
