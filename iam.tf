@@ -1,4 +1,4 @@
-resource "aws_iam_role" "comics_iam_for_lambda" {
+resource "aws_iam_role" "comics_iam_task_role" {
   name = "comics_iam_lambda"
 
   assume_role_policy = <<EOF
@@ -60,7 +60,7 @@ EOF
 }
 
 resource "aws_iam_role_policy_attachment" "comics_lambda_iam_role_policy_attachment" {
-  role       = aws_iam_role.comics_iam_for_lambda.name
+  role       = aws_iam_role.comics_iam_task_role.name
   policy_arn = aws_iam_policy.comics_lambda_iam_policy.arn
 }
 

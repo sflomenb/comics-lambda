@@ -14,7 +14,7 @@ data "template_file" "definition" {
 resource "aws_ecs_task_definition" "task" {
   family                   = "comics-task"
   container_definitions    = data.template_file.definition.rendered
-  task_role_arn            = aws_iam_role.comics_iam_for_lambda.arn
+  task_role_arn            = aws_iam_role.comics_iam_task_role.arn
   execution_role_arn       = aws_iam_role.task_exec_role.arn
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
@@ -50,7 +50,7 @@ resource "aws_security_group" "sec_group" {
 resource "aws_cloudwatch_event_target" "comics_scheduled_task" {
   rule     = aws_cloudwatch_event_rule.comics_lambda_rule.name
   arn      = aws_ecs_cluster.cluster.arn
-  role_arn = aws_iam_role.comics_iam_for_lambda.arn
+  role_arn = aws_iam_role.comics_iam_task_role.arn
 
   ecs_target {
     task_definition_arn = aws_ecs_task_definition.task.arn
