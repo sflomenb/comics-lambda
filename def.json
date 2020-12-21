@@ -1,0 +1,23 @@
+[
+  {
+    "name": "${name}",
+    "image": "${image}",
+    "cpu": 64,
+    "memory": 256,
+    "environment": [
+      {
+        "name": "numbers",
+        "value": "+18564959075,+12158880955"
+      }
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/fargate-task-definition",
+        "awslogs-region": "us-east-1",
+        "awslogs-stream-prefix": "${name}",
+        "awslogs-create-group": "true"
+      }
+    }
+  }
+]
