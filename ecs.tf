@@ -11,65 +11,6 @@ data "template_file" "definition" {
   }
 }
 
-data "aws_iam_role" "ecs_service_execution_role" {
-  name = "AWSServiceRoleForECS"
-}
-
-data "aws_iam_policy" "ecs_task_execution_policy" {
-  arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-resource "aws_iam_role" "task_exec_role" {
-  name               = "comics_iam_task_exec_role"
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": "sts:AssumeRole",
-      "Principal": {
-        "Service": "ecs-tasks.amazonaws.com"
-      },
-      "Effect": "Allow",
-      "Sid": "AssumeEcsTasksStatement"
-    }
-  ]
-}
-EOF
-
-}
-
-resource "aws_iam_policy" "comics_task_exec_role_policy" {
-  name = "comics_task_exec_role_policy"
-  path = "/"
-
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Action": [
-        "logs:CreateLogGroup"
-      ],
-      "Effect": "Allow",
-      "Sid": "CreateLogGroup",
-      "Resource": "*"
-    }
-  ]
-}
-EOF
-}
-
-resource "aws_iam_role_policy_attachment" "comics_task_esc_managed_role_attachment" {
-  role       = aws_iam_role.task_exec_role.name
-  policy_arn = data.aws_iam_policy.ecs_task_execution_policy.arn
-}
-
-resource "aws_iam_role_policy_attachment" "comics_task_esc_role_attachment" {
-  role       = aws_iam_role.task_exec_role.name
-  policy_arn = aws_iam_policy.comics_task_exec_role_policy.arn
-}
-
 resource "aws_ecs_task_definition" "task" {
   family                   = "comics-task"
   container_definitions    = data.template_file.definition.rendered
