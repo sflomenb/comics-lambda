@@ -12,6 +12,14 @@ resource "aws_iam_role" "comics_iam_task_role" {
       },
       "Effect": "Allow",
       "Sid": "AssumeEcsTasksStatement"
+    },
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "events.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": "AssumeCloudWatchStatement"
     }
   ]
 }
@@ -53,6 +61,27 @@ resource "aws_iam_policy" "comics_lambda_iam_policy" {
       "Effect": "Allow",
       "Sid": "S3ObjectStatement",
       "Resource": "${aws_s3_bucket.comics_bucket.arn}/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecs:RunTask"
+      ],
+      "Resource": [
+        "*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": [
+        "*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "iam:PassedToService": "ecs-tasks.amazonaws.com"
+        }
+      }
     }
   ]
 }
@@ -107,6 +136,27 @@ resource "aws_iam_policy" "comics_task_exec_role_policy" {
       "Effect": "Allow",
       "Sid": "CreateLogGroup",
       "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecs:RunTask"
+      ],
+      "Resource": [
+        "*"
+      ]
+    },
+    {
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": [
+        "*"
+      ],
+      "Condition": {
+        "StringLike": {
+          "iam:PassedToService": "ecs-tasks.amazonaws.com"
+        }
+      }
     }
   ]
 }
