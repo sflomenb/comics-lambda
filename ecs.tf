@@ -18,8 +18,8 @@ resource "aws_ecs_task_definition" "task" {
   execution_role_arn       = aws_iam_role.task_exec_role.arn
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = "512"
-  memory                   = "1024"
+  cpu                      = "256"
+  memory                   = "512"
 }
 
 resource "aws_ecs_service" "service" {

@@ -2,8 +2,6 @@
   {
     "name": "${name}",
     "image": "${image}",
-    "cpu": 64,
-    "memory": 256,
     "environment": [
       {
         "name": "numbers",
