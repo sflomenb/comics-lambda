@@ -1,5 +1,9 @@
 resource "aws_ecs_cluster" "cluster" {
   name = "comics-cluster"
+
+  tags = {
+    App = "Comics"
+  }
 }
 
 data "template_file" "definition" {
@@ -20,6 +24,10 @@ resource "aws_ecs_task_definition" "task" {
   network_mode             = "awsvpc"
   cpu                      = "256"
   memory                   = "512"
+
+  tags = {
+    App = "Comics"
+  }
 }
 
 resource "aws_ecs_service" "service" {
@@ -33,6 +41,10 @@ resource "aws_ecs_service" "service" {
     subnets          = data.aws_subnet_ids.subnets.ids
     security_groups  = [aws_security_group.sec_group.id]
   }
+
+  tags = {
+    App = "Comics"
+  }
 }
 
 resource "aws_security_group" "sec_group" {
@@ -43,6 +55,10 @@ resource "aws_security_group" "sec_group" {
     to_port     = 0
     cidr_blocks = ["0.0.0.0/0"]
     description = "All outbound traffic"
+  }
+
+  tags = {
+    App = "Comics"
   }
 }
 

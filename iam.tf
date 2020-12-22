@@ -26,7 +26,8 @@ resource "aws_iam_role" "comics_iam_task_role" {
 EOF
 
   tags = {
-    Name = "ComicsLambdaRole"
+    Name = "ComicsRole"
+    App = "Comics"
   }
 
 }
@@ -119,6 +120,9 @@ resource "aws_iam_role" "task_exec_role" {
 }
 EOF
 
+  tags = {
+    App = "Comics"
+  }
 }
 
 resource "aws_iam_policy" "comics_task_exec_role_policy" {

@@ -41,14 +41,17 @@ resource "aws_s3_bucket" "comics_bucket" {
 
   tags = {
     Name = "ComicsBucket"
+    App = "Comics"
   }
 }
 
 resource "aws_cloudwatch_event_rule" "comics_lambda_rule" {
   name                = "comics_lambda_trigger_rule"
   schedule_expression = "cron(0 14 * * ? *)"
+
   tags = {
     Name = "ComicsLambdaRule"
+    App = "Comics"
   }
 }
 
