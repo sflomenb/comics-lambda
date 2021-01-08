@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM python:3.8-slim-buster
 
 RUN apt-get -y update \
     && apt-get -y install \
@@ -45,7 +45,7 @@ WORKDIR /app
 
 COPY requirements.txt /app/
 
-RUN pip3 install -r requirements.txt
+RUN pip3 install -U pip && pip3 install -r requirements.txt
 
 RUN pyppeteer-install
 
